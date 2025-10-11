@@ -1,0 +1,20 @@
+@import url('https://unpkg.com/leaflet/dist/leaflet.css');
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+/* small utility */
+button {
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+#map {
+  height: 70vh;
+  width: 100%;
+}
