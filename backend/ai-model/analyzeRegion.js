@@ -1,24 +1,42 @@
-// backend/ai-model/analyzeRegion.js
-export default function analyzeRegion({ lat, lon }) {
-  /**
-   * Fake AI logic for demonstration:
-   * - Health index decreases if near longitude > 36.5
-   * - Random variation added
-   */
+// ai-model/analyzeRegion.js
+export function computeHealthIndex(region) {
+  // Simple mock: you can replace with real AI logic later
+  return region.health_index ?? Math.random().toFixed(2);
+}
 
-  let baseHealth = 0.5; // start neutral
+export function nearestRegionName(data, latCenter, lonCenter) {
+  if (!data || !data.length) return "N/A";
+  let nearest = data.reduce(
+    (prev, curr) => {
+      const dist = Math.sqrt((curr.lat - latCenter) ** 2 + (curr.lon - lonCenter) ** 2);
+      return dist < prev.dist ? { ...curr, dist } : prev;
+    },
+    { dist: Infinity }
+  );
+  return nearest.name ?? "N/A";
+}
 
-  if (lon > 36.5) baseHealth -= 0.2;
-  if (lat < -0.5) baseHealth += 0.1;
-
-  // Add random small variation
-  const variation = Math.random() * 0.2 - 0.1;
-  const healthIndex = Math.min(Math.max(baseHealth + variation, 0), 1);
-
-  return {
-    health_index: parseFloat(healthIndex.toFixed(2)),
-    recommendation: healthIndex < 0.4
-      ? "Consider reforestation or soil restoration"
-      : "Region is healthy, maintain current practices"
-  };
+export async function reverseGeocode(lat, lon) {
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`
+    );
+    if (!response.ok) {
+      const text = await response.text();
+      console.warn("Reverse geocode failed:", text);
+      return "Unknown region";
+    }
+    const data = await response.json();
+    return (
+      data.address?.state ||
+      data.address?.county ||
+      data.address?.village ||
+      data.address?.town ||
+      data.address?.city ||
+      "Unknown region"
+    );
+  } catch (err) {
+    console.warn("Reverse geocode fetch error:", err.message);
+    return "Unknown region";
+  }
 }

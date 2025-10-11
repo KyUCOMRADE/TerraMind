@@ -1,51 +1,57 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import analyzeRegion from "./ai-model/analyzeRegion.js"; // ✅ default import
+import { createClient } from "@supabase/supabase-js";
+import { computeHealthIndex, nearestRegionName, reverseGeocode } from "./ai-model/analyzeRegion.js";
 
 dotenv.config();
 const app = express();
-app.use(cors());
+const PORT = process.env.PORT || 5000;
+
+// Supabase setup
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+
+app.use(cors({ origin: "*" }));
 app.use(express.json());
 
+// --- Test endpoint ---
+app.get("/api/test", (req, res) => {
+  res.json({ message: "Backend is live!" });
+});
+
+// --- Analyze region endpoint ---
 app.post("/api/analyze", async (req, res) => {
   const { bbox } = req.body;
+  if (!bbox || bbox.length !== 2) return res.status(400).json({ error: "Invalid bbox" });
+
   try {
     const [southWest, northEast] = bbox;
     const latCenter = (southWest[0] + northEast[0]) / 2;
     const lonCenter = (southWest[1] + northEast[1]) / 2;
 
-    // --- Use AI model ---
-    const aiResult = analyzeRegion({ lat: latCenter, lon: lonCenter });
+    // Reverse geocode for region name
+    const clickedRegion = await reverseGeocode(latCenter, lonCenter);
 
-    // --- Reverse geocode ---
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latCenter}&lon=${lonCenter}`
-    );
-    const locationData = await response.json();
+    // Fetch regions from Supabase
+    const { data, error } = await supabase.from("regions").select("*");
+    if (error) throw error;
 
-    const regionName =
-      locationData.address?.state ||
-      locationData.address?.county ||
-      locationData.address?.village ||
-      locationData.address?.town ||
-      locationData.address?.city ||
-      "Unknown region";
+    const nearest = nearestRegionName(data, latCenter, lonCenter);
+
+    const health_index = computeHealthIndex({ health_index: data[0]?.health_index });
 
     res.json({
       message: "Region analysis complete",
-      clicked_region: regionName,
-      nearest_db_region: "N/A",
+      clicked_region: clickedRegion,
+      nearest_db_region: nearest,
+      health_index,
       lat: latCenter,
       lon: lonCenter,
-      ...aiResult
     });
   } catch (err) {
-    console.error("Error analyzing region:", err);
-    res.status(500).json({ error: err.message });
+    console.error("Error analyzing region:", err.message);
+    res.status(500).json({ error: "Failed to analyze region", details: err.message });
   }
 });
 
-app.listen(process.env.PORT || 5000, () => {
-  console.log(`Server running on port ${process.env.PORT || 5000}`);
-});
+app.listen(PORT, () => console.log(`Backend running on port ${PORT}`));

@@ -44,7 +44,7 @@ export default function MapComponent({ onRegionSelect }) {
         });
 
         const data = await response.json();
-        setLoading(false);
+        setAnalysis(data);
 
         if (!data || data.error) {
           console.error("❌ Failed to analyze region:", data?.error || "Unknown error");
