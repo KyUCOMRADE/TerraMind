@@ -10,6 +10,33 @@ TerraMind is a cutting-edge full-stack web application designed to analyze and v
 
 ---
 
+## Project Structure
+
+```
+TerraMind/
+ ├─ frontend/
+ │   ├─ src/
+ │   │   ├─ components/
+ │   │   │   ├─ Dashboard.jsx
+ │   │   │   ├─ MapComponent.jsx
+ │   │   │   └─ RegionCard.jsx
+ │   │   ├─ App.jsx
+ │   │   ├─ index.jsx
+ │   │   └─ main.jsx
+ │   ├─ package.json
+ │   └─ vite.config.js
+ ├─ backend/
+ │   ├─ ai-model/
+ │   │   └─ analyzeRegion.js
+ │   ├─ server.js
+ │   ├─ package.json
+ │   └─ .env
+ ├─ README.md
+ └─ .gitignore
+```
+
+---
+
 ## Features
 
 * **Interactive Map**: Click on any region to instantly analyze its health index.
