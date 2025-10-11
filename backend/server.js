@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { createClient } from "@supabase/supabase-js";
-import { computeHealthIndex, nearestRegionName, reverseGeocode } from "./ai-model/analyzeRegion.js";
+import { computeHealthIndex, getRegionName, nearestRegionName } from "./ai-model/analyzeRegion.js";
 
 dotenv.config();
 const app = express();
@@ -29,15 +29,14 @@ app.post("/api/analyze", async (req, res) => {
     const latCenter = (southWest[0] + northEast[0]) / 2;
     const lonCenter = (southWest[1] + northEast[1]) / 2;
 
-    // Reverse geocode for region name
-    const clickedRegion = await reverseGeocode(latCenter, lonCenter);
-
     // Fetch regions from Supabase
     const { data, error } = await supabase.from("regions").select("*");
     if (error) throw error;
 
-    const nearest = nearestRegionName(data, latCenter, lonCenter);
+    // For deployed backend, use nearest DB region as clicked_region
+    const clickedRegion = await getRegionName(latCenter, lonCenter, data);
 
+    const nearest = nearestRegionName(data, latCenter, lonCenter);
     const health_index = computeHealthIndex({ health_index: data[0]?.health_index });
 
     res.json({
