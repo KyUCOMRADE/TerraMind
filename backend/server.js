@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { createClient } from "@supabase/supabase-js";
-import { computeHealthIndex, generateAIRecommendation } from "./ai-model/analyzeRegion.js"; // ✅ fixed import name
+import { computeHealthIndex, generateAIRecommendation } from "./ai-model/analyzeRegion.js";
 
 dotenv.config();
 
@@ -18,9 +18,9 @@ app.post("/api/analyze", async (req, res) => {
 
   try {
     const { bbox } = req.body || {};
-    
-    if (!bbox) {
-      return res.status(400).json({ error: "Missing bbox field in request body" });
+
+    if (!bbox || !Array.isArray(bbox) || bbox.length !== 2) {
+      return res.status(400).json({ error: "Invalid or missing bbox field" });
     }
 
     const [southWest, northEast] = bbox;
@@ -28,32 +28,28 @@ app.post("/api/analyze", async (req, res) => {
     const lonCenter = (southWest[1] + northEast[1]) / 2;
     console.log(`🧭 Coordinates center: ${latCenter}, ${lonCenter}`);
 
-    // Reverse geocode
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latCenter}&lon=${lonCenter}`,
-      { headers: { "User-Agent": "TerraMind/1.0 (chegejoseph5006@gmail.com)" } }
-    );
-
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error("❌ Reverse geocode failed:", errText);
-      throw new Error("Failed reverse geocode");
+    // --- Reverse Geocode ---
+    let regionName = "Unknown region";
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latCenter}&lon=${lonCenter}`,
+        { headers: { "User-Agent": "TerraMind/1.0 (chegejoseph5006@gmail.com)" } }
+      );
+      const locationData = await response.json();
+      regionName =
+        locationData.address?.state ||
+        locationData.address?.county ||
+        locationData.address?.village ||
+        locationData.address?.town ||
+        locationData.address?.city ||
+        "Unknown region";
+    } catch (err) {
+      console.warn("❌ Reverse geocode failed:", err.message);
     }
 
-    const locationData = await response.json();
-    const regionName =
-      locationData.address?.state ||
-      locationData.address?.county ||
-      locationData.address?.village ||
-      locationData.address?.town ||
-      locationData.address?.city ||
-      "Unknown region";
-    console.log("📍 Region name:", regionName);
-
-    // Fetch from Supabase
+    // --- Fetch nearest DB region ---
     const { data, error } = await supabase.from("regions").select("*");
     if (error) throw error;
-    console.log("✅ Regions fetched from Supabase:", data?.length);
 
     const nearest = data.reduce(
       (prev, curr) => {
@@ -63,14 +59,22 @@ app.post("/api/analyze", async (req, res) => {
       { dist: Infinity }
     );
 
-    // AI model
-    const health_index = computeHealthIndex(nearest);
+    // --- AI Model ---
+    const health_index = computeHealthIndex(nearest); // 0 to 1
     const recommendation = generateAIRecommendation(health_index);
 
     console.log("🧠 Computed Health Index:", health_index);
     console.log("💡 Recommendation:", recommendation);
 
-    res.json({ message: "Analysis successful!", bbox });
+    res.json({
+      message: "Analysis successful!",
+      clicked_region: regionName,
+      nearest_db_region: nearest.name || "N/A",
+      lat: latCenter,
+      lon: lonCenter,
+      health_index,
+      recommendation,
+    });
   } catch (error) {
     console.error("💥 Error analyzing region:", error);
     res.status(500).json({ error: error.message });
@@ -80,4 +84,9 @@ app.post("/api/analyze", async (req, res) => {
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+});
+
+// Default route for Render test
+app.get("/", (req, res) => {
+  res.send("✅ TerraMind Backend Running Successfully!");
 });
