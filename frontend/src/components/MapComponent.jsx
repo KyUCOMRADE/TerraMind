@@ -1,7 +1,6 @@
 import React, { useEffect } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { computeHealthIndex, reverseGeocode } from "../ai-model/analyzeRegion";
 
 export default function MapComponent({ analyses, setAnalyses, setSelectedRegion }) {
   useEffect(() => {
@@ -13,39 +12,48 @@ export default function MapComponent({ analyses, setAnalyses, setSelectedRegion 
 
     async function handleMapClick(e) {
       const { lat, lng } = e.latlng;
-      const clicked_region = await reverseGeocode(lat, lng);
-      const health_index = computeHealthIndex({ lat, lon: lng });
-      const recommendation = getAIRecommendation(health_index);
 
-      const newAnalysis = {
-        clicked_region,
-        lat,
-        lon: lng,
-        health_index,
-        recommendation,
-      };
+      try {
+        // 🔥 Send request to your backend hosted on Render
+        const response = await fetch("https://terramind.onrender.com/api/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ lat, lon: lng }),
+        });
 
-      setAnalyses((prev) => [...prev, newAnalysis]);
-      setSelectedRegion(newAnalysis);
+        if (!response.ok) throw new Error("Backend response not OK");
+        const result = await response.json();
 
-      L.marker([lat, lng])
-        .addTo(map)
-        .bindPopup(`<b>${clicked_region}</b><br>Health Index: ${health_index}`)
-        .openPopup();
+        const newAnalysis = {
+          clicked_region: result.clicked_region || "Unknown region",
+          lat,
+          lon: lng,
+          health_index: result.health_index ?? "N/A",
+          recommendation: result.recommendation || "No recommendation available",
+        };
+
+        // Update frontend state and map marker
+        setAnalyses((prev) => [...prev, newAnalysis]);
+        setSelectedRegion(newAnalysis);
+
+        L.marker([lat, lng])
+          .addTo(map)
+          .bindPopup(
+            `<b>${newAnalysis.clicked_region}</b><br>
+            Health Index: ${newAnalysis.health_index}<br>
+            Recommendation: ${newAnalysis.recommendation}`
+          )
+          .openPopup();
+      } catch (err) {
+        console.error("❌ Failed to analyze region:", err.message);
+        alert("Error analyzing region. Please try again.");
+      }
     }
 
     map.on("click", handleMapClick);
 
     return () => map.remove();
   }, [setAnalyses, setSelectedRegion]);
-
-  // 🧠 Simple AI Recommendation logic
-  const getAIRecommendation = (healthIndex) => {
-    if (healthIndex >= 0.8) return "Excellent condition — maintain sustainable practices 🌿";
-    if (healthIndex >= 0.5) return "Moderate health — monitor periodically 🌾";
-    if (healthIndex >= 0.3) return "Low health — consider soil restoration 🌍";
-    return "Critical condition — urgent intervention needed 🚨";
-  };
 
   return (
     <div
