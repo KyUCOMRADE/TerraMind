@@ -75,3 +75,9 @@ app.post("/api/analyze", async (req, res) => {
 app.listen(process.env.PORT || 5000, () =>
   console.log(`Server running on port ${process.env.PORT || 5000}`)
 );
+
+// Default route for Render test
+app.get("/", (req, res) => {
+  res.send("✅ TerraMind Backend Running Successfully!");
+});
+
