@@ -12,17 +12,30 @@ export default function MapComponent({ analyses, setAnalyses, setSelectedRegion 
 
     async function handleMapClick(e) {
       const { lat, lng } = e.latlng;
+      console.log(`🗺️ Map clicked at: ${lat}, ${lng}`);
+
+      // ✅ Build a small bounding box for the clicked area
+      const bbox = [
+        [lat - 0.01, lng - 0.01], // southwest corner
+        [lat + 0.01, lng + 0.01], // northeast corner
+      ];
 
       try {
-        // 🔥 Send request to your backend hosted on Render
+        console.log("📤 Sending bbox to backend:", bbox);
+
         const response = await fetch("https://terramind.onrender.com/api/analyze", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ lat, lon: lng }),
+          body: JSON.stringify({ bbox }),
         });
 
-        if (!response.ok) throw new Error("Backend response not OK");
+        if (!response.ok) {
+          console.error("❌ Backend response not OK:", response.status);
+          throw new Error("Backend response not OK");
+        }
+
         const result = await response.json();
+        console.log("✅ Analysis result received:", result);
 
         const newAnalysis = {
           clicked_region: result.clicked_region || "Unknown region",
@@ -32,20 +45,21 @@ export default function MapComponent({ analyses, setAnalyses, setSelectedRegion 
           recommendation: result.recommendation || "No recommendation available",
         };
 
-        // Update frontend state and map marker
+        // 🧭 Update state and selected region
         setAnalyses((prev) => [...prev, newAnalysis]);
         setSelectedRegion(newAnalysis);
 
+        // 📍 Add a marker to the map with popup info
         L.marker([lat, lng])
           .addTo(map)
           .bindPopup(
             `<b>${newAnalysis.clicked_region}</b><br>
-            Health Index: ${newAnalysis.health_index}<br>
-            Recommendation: ${newAnalysis.recommendation}`
+             🌡️ Health Index: ${newAnalysis.health_index}<br>
+             💡 Recommendation: ${newAnalysis.recommendation}`
           )
           .openPopup();
       } catch (err) {
-        console.error("❌ Failed to analyze region:", err.message);
+        console.error("💥 Error analyzing region:", err.message);
         alert("Error analyzing region. Please try again.");
       }
     }
