@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { createClient } from "@supabase/supabase-js";
-import { computeHealthIndex, generateRecommendation } from "./ai-model/analyzeRegion.js";
+import { computeHealthIndex, generateAIRecommendation } from "./ai-model/analyzeRegion.js";
 
 dotenv.config();
 
