@@ -12,18 +12,18 @@ import {
 export default function Dashboard({ analyses }) {
   if (!analyses || analyses.length === 0) return <p>No analyses yet.</p>;
 
-  // Map health_index to color-coded status
-  const getStatus = (hi) => {
-    if (hi >= 0.8) return { status: "Healthy 🌱", color: "#2E7D32" };
-    if (hi >= 0.5) return { status: "Moderate ⚠️", color: "#FBC02D" };
-    if (hi >= 0.3) return { status: "Low 🔧", color: "#F57C00" };
-    return { status: "Critical ❗", color: "#D32F2F" };
+  // Map health_index to color-coded status and AI recommendation
+  const getStatusAndRecommendation = (hi) => {
+    if (hi >= 0.8) return { status: "Healthy 🌱", color: "#2E7D32", recommendation: "Maintain sustainable practices 🌿" };
+    if (hi >= 0.5) return { status: "Moderate ⚠️", color: "#FBC02D", recommendation: "Monitor periodically 🌾" };
+    if (hi >= 0.3) return { status: "Low 🔧", color: "#F57C00", recommendation: "Consider soil restoration 🌍" };
+    return { status: "Critical ❗", color: "#D32F2F", recommendation: "Urgent intervention needed 🚨" };
   };
 
   const chartData = analyses.map((a) => ({
     name: a.clicked_region,
     health_index: a.health_index,
-    statusInfo: getStatus(a.health_index),
+    ...getStatusAndRecommendation(a.health_index),
   }));
 
   return (
@@ -44,8 +44,8 @@ export default function Dashboard({ analyses }) {
           <YAxis domain={[0, 1]} />
           <Tooltip
             formatter={(value, name, props) => {
-              const info = props.payload.statusInfo;
-              return [`${value}`, `${info.status}`];
+              const info = props.payload;
+              return [`${value}`, `${info.status} – ${info.recommendation}`];
             }}
           />
           <Line
@@ -58,7 +58,7 @@ export default function Dashboard({ analyses }) {
       </ResponsiveContainer>
 
       <div style={{ marginTop: "15px" }}>
-        <h4>Status Overview</h4>
+        <h4>Status & Recommendations</h4>
         {chartData.map((a, idx) => (
           <div
             key={idx}
@@ -69,11 +69,13 @@ export default function Dashboard({ analyses }) {
               padding: "5px",
               borderRadius: "5px",
               backgroundColor: "#fff",
-              borderLeft: `6px solid ${a.statusInfo.color}`,
+              borderLeft: `6px solid ${a.color}`,
             }}
           >
-            <span>{a.name}</span>
-            <span>{a.statusInfo.status}</span>
+            <div>
+              <strong>{a.name}</strong> – {a.status}
+            </div>
+            <div>{a.recommendation}</div>
           </div>
         ))}
       </div>

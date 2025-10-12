@@ -26,30 +26,31 @@ export default function MapComponent({ analyses, setAnalyses, setSelectedRegion 
         });
 
         if (!response.ok) throw new Error("Backend response not OK");
+
         const result = await response.json();
 
         const newAnalysis = {
-          clicked_region: result.clicked_region,
+          clicked_region: result.clicked_region || "Unknown region",
           lat,
           lon: lng,
-          health_index: result.health_index,
-          recommendation: result.recommendation,
-          status: result.status,
-          statusColor: result.statusColor,
+          health_index: result.health_index ?? 0,
+          recommendation: result.recommendation || "No recommendation available",
         };
 
+        // Update frontend state
         setAnalyses((prev) => [...prev, newAnalysis]);
-        setSelectedRegion(newAnalysis);
+        setSelectedRegion(newAnalysis); // ✅ This updates RegionCard
 
+        // Add marker on map
         L.marker([lat, lng])
           .addTo(map)
           .bindPopup(
             `<b>${newAnalysis.clicked_region}</b><br>
-            Status: <span style="color:${newAnalysis.statusColor}">${newAnalysis.status}</span><br>
-            Health Index: ${newAnalysis.health_index}<br>
-            Recommendation: ${newAnalysis.recommendation}`
+             Health Index: ${newAnalysis.health_index}<br>
+             Recommendation: ${newAnalysis.recommendation}`
           )
           .openPopup();
+
       } catch (err) {
         console.error("❌ Failed to analyze region:", err.message);
         alert("Error analyzing region. Please try again.");
@@ -57,6 +58,7 @@ export default function MapComponent({ analyses, setAnalyses, setSelectedRegion 
     }
 
     map.on("click", handleMapClick);
+
     return () => map.remove();
   }, [setAnalyses, setSelectedRegion]);
 
