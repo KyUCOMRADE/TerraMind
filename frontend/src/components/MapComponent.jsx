@@ -1,62 +1,61 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { computeHealthIndex, nearestRegionName, reverseGeocode } from "../ai-model/analyzeRegion";
+import { computeHealthIndex, reverseGeocode } from "../ai-model/analyzeRegion";
 
-export default function MapComponent({ analyses, setAnalyses }) {
-  const mapRef = useRef(null);
-
+export default function MapComponent({ analyses, setAnalyses, setSelectedRegion }) {
   useEffect(() => {
-    const mapContainer = document.getElementById("map");
-    if (!mapContainer) return;
-
-    if (mapContainer._leaflet_id) {
-      mapContainer._leaflet_id = null;
-      mapContainer.innerHTML = "";
-    }
-
-    const map = L.map("map").setView([-0.3031, 36.08], 7);
+    const map = L.map("map").setView([-1.286389, 36.817223], 7);
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; OpenStreetMap contributors',
+      attribution: "&copy; OpenStreetMap contributors",
     }).addTo(map);
 
-    const handleClick = async (e) => {
-      const lat = e.latlng.lat;
-      const lon = e.latlng.lng;
+    async function handleMapClick(e) {
+      const { lat, lng } = e.latlng;
+      const clicked_region = await reverseGeocode(lat, lng);
+      const health_index = computeHealthIndex({ lat, lon: lng });
+      const recommendation = getAIRecommendation(health_index);
 
-      try {
-        const regionName = await reverseGeocode(lat, lon);
+      const newAnalysis = {
+        clicked_region,
+        lat,
+        lon: lng,
+        health_index,
+        recommendation,
+      };
 
-        // Mock Supabase data (replace with real fetch if needed)
-        const dbRegions = analyses; 
-        const nearestName = nearestRegionName(dbRegions, lat, lon);
-        const health_index = computeHealthIndex({ lat, lon });
+      setAnalyses((prev) => [...prev, newAnalysis]);
+      setSelectedRegion(newAnalysis);
 
-        const recommendation = health_index >= 0.8
-          ? "Land is healthy 🌱"
-          : health_index >= 0.5
-          ? "Moderate health – monitor regularly ⚠️"
-          : health_index >= 0.3
-          ? "Low health – consider intervention 🔧"
-          : "Critical – urgent action required ❗";
+      L.marker([lat, lng])
+        .addTo(map)
+        .bindPopup(`<b>${clicked_region}</b><br>Health Index: ${health_index}`)
+        .openPopup();
+    }
 
-        const analysis = { clicked_region: regionName, nearest_db_region: nearestName, lat, lon, health_index, recommendation };
+    map.on("click", handleMapClick);
 
-        setAnalyses([...analyses, analysis]);
-      } catch (err) {
-        console.error("Failed to analyze region:", err);
-      }
-    };
+    return () => map.remove();
+  }, [setAnalyses, setSelectedRegion]);
 
-    map.on("click", handleClick);
-    mapRef.current = map;
+  // 🧠 Simple AI Recommendation logic
+  const getAIRecommendation = (healthIndex) => {
+    if (healthIndex >= 0.8) return "Excellent condition — maintain sustainable practices 🌿";
+    if (healthIndex >= 0.5) return "Moderate health — monitor periodically 🌾";
+    if (healthIndex >= 0.3) return "Low health — consider soil restoration 🌍";
+    return "Critical condition — urgent intervention needed 🚨";
+  };
 
-    return () => {
-      map.off("click", handleClick);
-      map.remove();
-    };
-  }, [analyses, setAnalyses]);
-
-  return <div id="map" style={{ width: "100%", height: "500px", borderRadius: "10px" }}></div>;
+  return (
+    <div
+      id="map"
+      style={{
+        height: "500px",
+        borderRadius: "10px",
+        border: "2px solid #ddd",
+        boxShadow: "0 0 8px rgba(0,0,0,0.1)",
+      }}
+    ></div>
+  );
 }
