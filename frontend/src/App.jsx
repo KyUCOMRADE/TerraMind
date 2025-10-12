@@ -1,33 +1,41 @@
 import React, { useState } from "react";
-import MapComponent from "./components/MapComponent.jsx";
-import RegionCard from "./components/RegionCard.jsx";
-import Dashboard from "./components/Dashboard.jsx";
+import MapComponent from "./components/MapComponent";
+import Dashboard from "./components/Dashboard";
+import RegionCard from "./components/RegionCard";
 
 export default function App() {
-  const [currentTab, setCurrentTab] = useState("map");
-  const [selectedRegion, setSelectedRegion] = useState(null);
   const [analyses, setAnalyses] = useState([]);
-
-  const handleRegionSelect = (regionData) => {
-    setSelectedRegion(regionData);
-    setAnalyses((prev) => [...prev, regionData]);
-  };
+  const [selectedRegion, setSelectedRegion] = useState(null);
 
   return (
-    <div style={{ padding: "20px", fontFamily: "sans-serif" }}>
-      <nav style={{ marginBottom: "20px" }}>
-        <button onClick={() => setCurrentTab("map")} style={{ marginRight: "10px", padding: "8px 12px" }}>Map</button>
-        <button onClick={() => setCurrentTab("analytics")} style={{ padding: "8px 12px" }}>Analytics</button>
-      </nav>
+    <div style={{ padding: "20px", fontFamily: "Arial, sans-serif" }}>
+      <h1>🌱 TerraMind — AI-Powered Land Monitoring</h1>
 
-      {currentTab === "map" && (
-        <>
-          <MapComponent onRegionSelect={handleRegionSelect} />
-          {selectedRegion && <RegionCard {...selectedRegion} />}
-        </>
-      )}
+      <div style={{ display: "flex", gap: "20px", marginTop: "20px" }}>
+        {/* 🗺️ Map Section */}
+        <div style={{ flex: 2 }}>
+          <MapComponent
+            analyses={analyses}
+            setAnalyses={setAnalyses}
+            setSelectedRegion={setSelectedRegion}
+          />
+        </div>
 
-      {currentTab === "analytics" && <Dashboard analyses={analyses} />}
+        {/* 📊 Dashboard + Region Info */}
+        <div style={{ flex: 1 }}>
+          {selectedRegion && (
+            <RegionCard
+              clicked_region={selectedRegion.clicked_region}
+              lat={selectedRegion.lat}
+              lon={selectedRegion.lon}
+              health_index={selectedRegion.health_index}
+              recommendation={selectedRegion.recommendation}
+            />
+          )}
+
+          <Dashboard analyses={analyses} />
+        </div>
+      </div>
     </div>
   );
 }

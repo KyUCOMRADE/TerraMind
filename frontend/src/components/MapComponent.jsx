@@ -1,20 +1,14 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { computeHealthIndex, nearestRegionName, reverseGeocode } from "../ai-model/analyzeRegion";
 
-const getMarkerColor = (healthIndex) => {
-  if (healthIndex >= 0.8) return "green";
-  if (healthIndex >= 0.5) return "yellow";
-  if (healthIndex >= 0.3) return "orange";
-  return "red";
-};
-
-export default function MapComponent({ onRegionSelect }) {
-  const markersRef = useRef([]);
-  const [loading, setLoading] = useState(false);
+export default function MapComponent({ analyses, setAnalyses }) {
+  const mapRef = useRef(null);
 
   useEffect(() => {
     const mapContainer = document.getElementById("map");
+    if (!mapContainer) return;
 
     if (mapContainer._leaflet_id) {
       mapContainer._leaflet_id = null;
@@ -27,84 +21,42 @@ export default function MapComponent({ onRegionSelect }) {
       attribution: '&copy; OpenStreetMap contributors',
     }).addTo(map);
 
-    const clickHandler = async (e) => {
-      if (!onRegionSelect) return;
-
-      const bbox = [
-        [e.latlng.lat - 0.02, e.latlng.lng - 0.02],
-        [e.latlng.lat + 0.02, e.latlng.lng + 0.02],
-      ];
+    const handleClick = async (e) => {
+      const lat = e.latlng.lat;
+      const lon = e.latlng.lng;
 
       try {
-        setLoading(true);
-        const response = await fetch(import.meta.env.VITE_BACKEND_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ bbox }),
-        });
+        const regionName = await reverseGeocode(lat, lon);
 
-        const data = await response.json();
-        setAnalysis(data);
+        // Mock Supabase data (replace with real fetch if needed)
+        const dbRegions = analyses; 
+        const nearestName = nearestRegionName(dbRegions, lat, lon);
+        const health_index = computeHealthIndex({ lat, lon });
 
-        if (!data || data.error) {
-          console.error("❌ Failed to analyze region:", data?.error || "Unknown error");
-          return;
-        }
+        const recommendation = health_index >= 0.8
+          ? "Land is healthy 🌱"
+          : health_index >= 0.5
+          ? "Moderate health – monitor regularly ⚠️"
+          : health_index >= 0.3
+          ? "Low health – consider intervention 🔧"
+          : "Critical – urgent action required ❗";
 
-        onRegionSelect({
-          clicked_region: data.clicked_region,
-          lat: data.lat,
-          lon: data.lon,
-          health_index: data.health_index,
-          recommendation: data.recommendation,
-        });
+        const analysis = { clicked_region: regionName, nearest_db_region: nearestName, lat, lon, health_index, recommendation };
 
-        const markerColor = getMarkerColor(data.health_index);
-        const marker = L.circleMarker([data.lat, data.lon], {
-          radius: 10,
-          fillColor: markerColor,
-          color: "#000",
-          weight: 1,
-          opacity: 1,
-          fillOpacity: 0.8,
-        }).addTo(map);
-
-        marker.bindPopup(
-          `<b>${data.clicked_region}</b><br>Health Index: ${data.health_index}<br>Recommendation: ${data.recommendation}`
-        );
-
-        markersRef.current.push(marker);
-
+        setAnalyses([...analyses, analysis]);
       } catch (err) {
-        console.error("❌ Failed to analyze region:", err);
-        setLoading(false);
+        console.error("Failed to analyze region:", err);
       }
     };
 
-    map.on("click", clickHandler);
+    map.on("click", handleClick);
+    mapRef.current = map;
 
     return () => {
-      map.off("click", clickHandler);
-      markersRef.current.forEach((m) => map.removeLayer(m));
-      markersRef.current = [];
+      map.off("click", handleClick);
+      map.remove();
     };
-  }, [onRegionSelect]);
+  }, [analyses, setAnalyses]);
 
-  return (
-    <div style={{ position: "relative" }}>
-      {loading && (
-        <div style={{
-          position: "absolute", top: 0, left: 0, width: "100%", height: "500px",
-          display: "flex", justifyContent: "center", alignItems: "center",
-          background: "rgba(255,255,255,0.6)", zIndex: 999
-        }}>
-          <div>Analyzing... 🔄</div>
-        </div>
-      )}
-      <div
-        id="map"
-        style={{ width: "100%", height: "500px", borderRadius: "10px", marginTop: "20px" }}
-      ></div>
-    </div>
-  );
+  return <div id="map" style={{ width: "100%", height: "500px", borderRadius: "10px" }}></div>;
 }
