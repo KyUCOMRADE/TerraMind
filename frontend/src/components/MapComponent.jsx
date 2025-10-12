@@ -12,60 +12,51 @@ export default function MapComponent({ analyses, setAnalyses, setSelectedRegion 
 
     async function handleMapClick(e) {
       const { lat, lng } = e.latlng;
-      console.log(`🗺️ Map clicked at: ${lat}, ${lng}`);
-
-      // ✅ Build a small bounding box for the clicked area
-      const bbox = [
-        [lat - 0.01, lng - 0.01], // southwest corner
-        [lat + 0.01, lng + 0.01], // northeast corner
-      ];
 
       try {
-        console.log("📤 Sending bbox to backend:", bbox);
-
         const response = await fetch("https://terramind.onrender.com/api/analyze", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ bbox }),
+          body: JSON.stringify({
+            bbox: [
+              [lat - 0.01, lng - 0.01],
+              [lat + 0.01, lng + 0.01],
+            ],
+          }),
         });
 
-        if (!response.ok) {
-          console.error("❌ Backend response not OK:", response.status);
-          throw new Error("Backend response not OK");
-        }
-
+        if (!response.ok) throw new Error("Backend response not OK");
         const result = await response.json();
-        console.log("✅ Analysis result received:", result);
 
         const newAnalysis = {
-          clicked_region: result.clicked_region || "Unknown region",
+          clicked_region: result.clicked_region,
           lat,
           lon: lng,
-          health_index: result.health_index ?? "N/A",
-          recommendation: result.recommendation || "No recommendation available",
+          health_index: result.health_index,
+          recommendation: result.recommendation,
+          status: result.status,
+          statusColor: result.statusColor,
         };
 
-        // 🧭 Update state and selected region
         setAnalyses((prev) => [...prev, newAnalysis]);
         setSelectedRegion(newAnalysis);
 
-        // 📍 Add a marker to the map with popup info
         L.marker([lat, lng])
           .addTo(map)
           .bindPopup(
             `<b>${newAnalysis.clicked_region}</b><br>
-             🌡️ Health Index: ${newAnalysis.health_index}<br>
-             💡 Recommendation: ${newAnalysis.recommendation}`
+            Status: <span style="color:${newAnalysis.statusColor}">${newAnalysis.status}</span><br>
+            Health Index: ${newAnalysis.health_index}<br>
+            Recommendation: ${newAnalysis.recommendation}`
           )
           .openPopup();
       } catch (err) {
-        console.error("💥 Error analyzing region:", err.message);
+        console.error("❌ Failed to analyze region:", err.message);
         alert("Error analyzing region. Please try again.");
       }
     }
 
     map.on("click", handleMapClick);
-
     return () => map.remove();
   }, [setAnalyses, setSelectedRegion]);
 

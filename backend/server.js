@@ -18,36 +18,27 @@ app.post("/api/analyze", async (req, res) => {
 
   try {
     const { bbox } = req.body || {};
-
-    if (!bbox || !Array.isArray(bbox) || bbox.length !== 2) {
-      return res.status(400).json({ error: "Invalid or missing bbox field" });
-    }
+    if (!bbox) return res.status(400).json({ error: "Missing bbox field in request body" });
 
     const [southWest, northEast] = bbox;
     const latCenter = (southWest[0] + northEast[0]) / 2;
     const lonCenter = (southWest[1] + northEast[1]) / 2;
-    console.log(`🧭 Coordinates center: ${latCenter}, ${lonCenter}`);
 
-    // --- Reverse Geocode ---
-    let regionName = "Unknown region";
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latCenter}&lon=${lonCenter}`,
-        { headers: { "User-Agent": "TerraMind/1.0 (chegejoseph5006@gmail.com)" } }
-      );
-      const locationData = await response.json();
-      regionName =
-        locationData.address?.state ||
-        locationData.address?.county ||
-        locationData.address?.village ||
-        locationData.address?.town ||
-        locationData.address?.city ||
-        "Unknown region";
-    } catch (err) {
-      console.warn("❌ Reverse geocode failed:", err.message);
-    }
+    // Reverse geocode
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latCenter}&lon=${lonCenter}`,
+      { headers: { "User-Agent": "TerraMind/1.0 (chegejoseph5006@gmail.com)" } }
+    );
+    const locationData = await response.json();
+    const regionName =
+      locationData.address?.state ||
+      locationData.address?.county ||
+      locationData.address?.village ||
+      locationData.address?.town ||
+      locationData.address?.city ||
+      "Unknown region";
 
-    // --- Fetch nearest DB region ---
+    // Fetch nearest DB region
     const { data, error } = await supabase.from("regions").select("*");
     if (error) throw error;
 
@@ -59,21 +50,18 @@ app.post("/api/analyze", async (req, res) => {
       { dist: Infinity }
     );
 
-    // --- AI Model ---
-    const health_index = computeHealthIndex(nearest); // 0 to 1
-    const recommendation = generateAIRecommendation(health_index);
-
-    console.log("🧠 Computed Health Index:", health_index);
-    console.log("💡 Recommendation:", recommendation);
+    const health_index = computeHealthIndex(nearest);
+    const aiResult = generateAIRecommendation(health_index);
 
     res.json({
-      message: "Analysis successful!",
       clicked_region: regionName,
       nearest_db_region: nearest.name || "N/A",
       lat: latCenter,
       lon: lonCenter,
       health_index,
-      recommendation,
+      recommendation: aiResult.recommendation,
+      status: aiResult.status,
+      statusColor: aiResult.color,
     });
   } catch (error) {
     console.error("💥 Error analyzing region:", error);
@@ -82,11 +70,6 @@ app.post("/api/analyze", async (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
-// Default route for Render test
-app.get("/", (req, res) => {
-  res.send("✅ TerraMind Backend Running Successfully!");
-});
+app.get("/", (req, res) => res.send("✅ TerraMind Backend Running Successfully!"));
