@@ -57,6 +57,17 @@ TerraMind/
 
 ---
 
+## Demo
+
+Watch TerraMind in action with the local video demo:
+
+<video width="600" controls>
+  <source src="./frontend/src/assets/demo.mp4" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
+
+---
+
 ## Deployment
 
 TerraMind is deployed and fully functional online. You can access it here:
@@ -76,9 +87,9 @@ TerraMind is deployed and fully functional online. You can access it here:
 
 1. Connect backend repo to Render.
 2. Set environment variables:
-   - `SUPABASE_URL` → Your Supabase project URL
-   - `SUPABASE_KEY` → Supabase service key or anon key
-   - `PORT=5000`
+   * `SUPABASE_URL` → Your Supabase project URL
+   * `SUPABASE_KEY` → Supabase service key or anon key
+   * `PORT=5000`
 3. Start command: `node server.js`
 4. Deploy → Backend URL: `https://terramind1.onrender.com`
 
@@ -111,14 +122,6 @@ npm run dev
 ```
 
 4. Open your browser and navigate to `http://localhost:5173` to access the application.
-
----
-
-## Future Enhancements
-
-* Integration with real GIS/Remote Sensing data for precise analyses.
-* Advanced AI recommendations using Claude.ai.
-* Improved mobile responsiveness for wider accessibility.
 
 ---
 
