@@ -1,6 +1,3 @@
-// =========================
-// Backend: server.js (Full Realistic AI Integration)
-// =========================
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -43,7 +40,6 @@ async function getSoilQuality(lat, lon) {
 
 async function getRainfall(lat, lon) {
   // Placeholder, replace with CHIRPS / OpenWeatherMap API
-  // Example: normalize 0-200mm monthly to 0..1
   return Math.random();
 }
 
@@ -67,8 +63,6 @@ async function computeHealthIndex(lat, lon) {
 // =========================
 // Routes
 // =========================
-
-// Analyze Region Endpoint
 app.post('/api/analyze', async (req, res) => {
   try {
     const { bbox, user_id } = req.body;
@@ -94,7 +88,7 @@ app.post('/api/analyze', async (req, res) => {
       clicked_region: regionName,
       lat, lon,
       health_index,
-      recommendation: aiResult.recommendation,
+      recommendations: [aiResult.recommendation],
       status: aiResult.status,
       statusColor: aiResult.color
     });
@@ -105,7 +99,6 @@ app.post('/api/analyze', async (req, res) => {
   }
 });
 
-// Supabase Auth Endpoints
 app.post('/api/signup', async (req, res) => {
   const { email, password } = req.body;
   const { data, error } = await supabase.auth.signUp({ email, password });
@@ -120,12 +113,12 @@ app.post('/api/login', async (req, res) => {
   res.json({ session: data.session });
 });
 
-// Fetch user analyses
 app.get('/api/my-regions', async (req,res) => {
   const { user_id } = req.query;
+  if (!user_id) return res.status(400).json({ error: 'Missing user_id' });
   const { data, error } = await supabase.from('regions').select('*').eq('user_id', user_id);
   if (error) return res.status(400).json({ error: error.message });
-  res.json({ regions: data });
+  res.json({ regions: data || [] });
 });
 
 app.get('/', (req,res) => res.send('✅ TerraMind Backend Running Successfully!'));
