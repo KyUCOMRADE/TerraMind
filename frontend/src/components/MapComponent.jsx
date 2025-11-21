@@ -1,6 +1,4 @@
-// =========================
-// Frontend: MapComponent.jsx (Updated for Auto-Save)
-// =========================
+// MapComponent.jsx
 import React, { useEffect } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -9,23 +7,14 @@ export default function MapComponent({ analyses, setAnalyses, setSelectedRegion,
   useEffect(() => {
     const map = L.map('map').setView([-1.286389, 36.817223], 7);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
-
-    L.tileLayer.wms('https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi', {
-      layers: 'MODIS_Terra_NDVI_16Day',
-      format: 'image/png',
-      transparent: true,
-      attribution: 'NASA MODIS'
-    }).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
 
     async function handleMapClick(e) {
       const { lat, lng } = e.latlng;
       try {
-        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/analyze`, {
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/analyze`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({ bbox: [[lat-0.01,lng-0.01],[lat+0.01,lng+0.01]], user_id: userId })
         });
         if (!response.ok) throw new Error('Backend response not OK');
@@ -33,8 +22,7 @@ export default function MapComponent({ analyses, setAnalyses, setSelectedRegion,
 
         const newAnalysis = {
           clicked_region: result.clicked_region,
-          lat,
-          lon: lng,
+          lat, lon: lng,
           health_index: result.health_index ?? 0,
           recommendation: result.recommendation || 'No recommendation'
         };
@@ -42,10 +30,10 @@ export default function MapComponent({ analyses, setAnalyses, setSelectedRegion,
         setAnalyses(prev => [...prev, newAnalysis]);
         setSelectedRegion(newAnalysis);
 
-        L.marker([lat, lng])
-          .addTo(map)
+        L.marker([lat,lng]).addTo(map)
           .bindPopup(`<b>${newAnalysis.clicked_region}</b><br>Health Index: ${newAnalysis.health_index}<br>Recommendation: ${newAnalysis.recommendation}`)
           .openPopup();
+
       } catch (err) {
         console.error('Failed to analyze region:', err.message);
         alert('Error analyzing region.');
@@ -56,5 +44,5 @@ export default function MapComponent({ analyses, setAnalyses, setSelectedRegion,
     return () => map.remove();
   }, [setAnalyses, setSelectedRegion, userId]);
 
-  return <div id='map' style={{ height:'500px', borderRadius:'10px', border:'2px solid #ddd', boxShadow:'0 0 8px rgba(0,0,0,0.1)' }} />;
+  return <div id="map" style={{ height:'500px', borderRadius:'10px', border:'2px solid #ddd', boxShadow:'0 0 8px rgba(0,0,0,0.1)' }} />;
 }
