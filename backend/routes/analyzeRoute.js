@@ -17,7 +17,7 @@ router.post('/analyze', async (req, res) => {
     const aiData = generateAIRecommendations(healthIndex);
 
     // Save to Supabase (user-specific)
-    const { data, error } = await supabase
+    const { data: _data, error } = await supabase
       .from('regions')
       .insert([{
         user_id,
