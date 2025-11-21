@@ -10,7 +10,7 @@ const getHealthStatus = healthIndex => {
 export default function RegionCard({ selectedRegion }) {
   if (!selectedRegion) return <p>No region selected.</p>;
 
-  const { clicked_region, lat, lon, health_index, recommendation: aiRecommendations } = selectedRegion;
+  const { clicked_region, lat, lon, health_index, recommendations } = selectedRegion;
   const { color, message } = getHealthStatus(health_index);
 
   return (
@@ -31,7 +31,7 @@ export default function RegionCard({ selectedRegion }) {
       <div style={{ marginTop:'5px' }}>
         <strong>Recommendations:</strong>
         <ul>
-          {aiRecommendations?.map((rec, i) => <li key={i} style={{ color }}>{rec}</li>)}
+          {(Array.isArray(recommendations) ? recommendations : [recommendations]).map((rec,i) => <li key={i} style={{ color }}>{rec}</li>)}
         </ul>
       </div>
     </div>

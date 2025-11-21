@@ -1,7 +1,15 @@
-// MapComponent.jsx
 import React, { useEffect } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow
+});
 
 export default function MapComponent({ analyses, setAnalyses, setSelectedRegion, userId }) {
   useEffect(() => {
@@ -14,8 +22,8 @@ export default function MapComponent({ analyses, setAnalyses, setSelectedRegion,
       try {
         const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/analyze`, {
           method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ bbox: [[lat-0.01,lng-0.01],[lat+0.01,lng+0.01]], user_id: userId })
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ bbox:[[lat-0.01,lng-0.01],[lat+0.01,lng+0.01]], user_id:userId })
         });
         if (!response.ok) throw new Error('Backend response not OK');
         const result = await response.json();
@@ -24,14 +32,16 @@ export default function MapComponent({ analyses, setAnalyses, setSelectedRegion,
           clicked_region: result.clicked_region,
           lat, lon: lng,
           health_index: result.health_index ?? 0,
-          recommendation: result.recommendation || 'No recommendation'
+          recommendations: result.recommendations || ['No recommendation'],
+          status: result.status,
+          statusColor: result.statusColor
         };
 
         setAnalyses(prev => [...prev, newAnalysis]);
         setSelectedRegion(newAnalysis);
 
         L.marker([lat,lng]).addTo(map)
-          .bindPopup(`<b>${newAnalysis.clicked_region}</b><br>Health Index: ${newAnalysis.health_index}<br>Recommendation: ${newAnalysis.recommendation}`)
+          .bindPopup(`<b>${newAnalysis.clicked_region}</b><br>Health Index: ${newAnalysis.health_index}<br>Recommendation: ${newAnalysis.recommendations.join(', ')}`)
           .openPopup();
 
       } catch (err) {
