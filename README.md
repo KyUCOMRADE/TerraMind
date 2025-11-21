@@ -57,6 +57,33 @@ TerraMind/
 
 ---
 
+## Deployment
+
+TerraMind is deployed and fully functional online. You can access it here:
+
+* **Frontend:** [https://terra-mind-dcfu.vercel.app](https://terra-mind-dcfu.vercel.app)
+* **Backend:** [https://terramind1.onrender.com](https://terramind1.onrender.com)
+
+### Frontend Deployment Steps (Vercel)
+
+1. Connect the frontend repo to Vercel.
+2. Set environment variable: `REACT_APP_BACKEND_URL=https://terramind1.onrender.com`
+3. Build command: `npm run build`
+4. Output directory: `build`
+5. Deploy → Access via the live URL.
+
+### Backend Deployment Steps (Render)
+
+1. Connect backend repo to Render.
+2. Set environment variables:
+   - `SUPABASE_URL` → Your Supabase project URL
+   - `SUPABASE_KEY` → Supabase service key or anon key
+   - `PORT=5000`
+3. Start command: `node server.js`
+4. Deploy → Backend URL: `https://terramind1.onrender.com`
+
+---
+
 ## Installation & Running Locally
 
 1. Clone the repository:
